@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MDP Surf TV</title>
+<style>
+:root{--glass:rgba(10,14,18,.52);--line:rgba(255,255,255,.16);--text:#fff;--muted:rgba(255,255,255,.72)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
+#video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#000;transition:opacity .75s ease}
+#live{position:fixed;right:28px;top:24px;display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:999px;background:rgba(5,9,12,.42);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;pointer-events:none}
+#liveDot{width:9px;height:9px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 0 rgba(255,59,48,.55);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.55)}70%{box-shadow:0 0 0 8px rgba(255,59,48,0)}100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}}
+#info{position:fixed;left:28px;bottom:28px;min-width:310px;padding:15px 17px 14px;border-radius:16px;background:rgba(5,9,12,.42);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.22);text-shadow:0 2px 8px rgba(0,0,0,.6);transition:opacity .4s;pointer-events:none}
+#name{font-family:"Avenir Next","Helvetica Neue",Arial,sans-serif;font-size:32px;line-height:1.05;font-weight:600;letter-spacing:-.025em}
+#meta{display:flex;align-items:center;gap:10px;margin-top:8px;font-family:"Avenir Next","Helvetica Neue",Arial,sans-serif;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+#metaSep{opacity:.35} #counter{font-variant-numeric:tabular-nums}
+#radioHud{position:fixed;right:28px;bottom:28px;max-width:min(520px,45vw);padding:12px 14px;border-radius:14px;background:rgba(5,9,12,.42);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 30px rgba(0,0,0,.22);pointer-events:none;transition:opacity .35s,transform .35s}
+#radioHud.hidden{opacity:0;transform:translateY(8px)}
+#radioStation{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.66)}
+#radioTrack{margin-top:3px;font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#radioHint{position:fixed;left:50%;top:26px;transform:translateX(-50%);padding:10px 14px;border-radius:999px;background:rgba(5,9,12,.74);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s}
+#radioHint.show{opacity:1}
+.radio-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin:12px 0;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.045)}
+.radio-copy{display:flex;flex-direction:column;gap:2px}.radio-copy strong{font-size:13px}.radio-copy span{font-size:11px;color:rgba(255,255,255,.55)}
+.volume-row{display:flex;align-items:center;gap:10px;margin:8px 0 12px}.volume-row label{font-size:12px;color:rgba(255,255,255,.7)}.volume-row input[type=range]{flex:1;accent-color:white}
+#controls{position:fixed;right:24px;top:78px;display:flex;flex-direction:column;background:rgba(9,12,15,.84);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:18px;width:min(620px,calc(100vw - 48px));max-height:calc(100vh - 102px);overflow:hidden;box-shadow:0 18px 70px rgba(0,0,0,.34);opacity:0;pointer-events:none;transform:translateY(-8px) scale(.985);transition:.22s}
+body.show-controls #controls{opacity:1;pointer-events:auto;transform:none}
+#controls h3{margin:0;font-size:18px;letter-spacing:-.01em}#controls .hint{display:block;margin:3px 0 14px;font-size:12px;color:rgba(255,255,255,.55)}
+.control-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.close-btn{width:34px;height:34px;border-radius:50%;padding:0;display:grid;place-items:center;font-size:22px;line-height:1;background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.11)}
+.row{display:flex;gap:8px;align-items:center;margin:10px 0}.row label{flex:1;font-size:13px;color:rgba(255,255,255,.8)}.row input[type=number]{width:72px}
+button,input{font:inherit}input[type=number],.beach input[type=text]{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:7px 8px;outline:none}
+button{background:#fff;color:#111;border:0;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:650}.secondary{background:rgba(255,255,255,.09);color:#fff;border:1px solid rgba(255,255,255,.1)}button:hover{filter:brightness(.95)}
+.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.10);flex:0 0 auto}.buttons button{flex:1;min-width:110px}
+
+.selection-tools{display:flex;gap:8px;margin:4px 0 10px}.selection-tools button{flex:1;padding:8px 9px;font-size:12px}
+.pause-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0;padding:11px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.045)}
+.pause-copy{display:flex;flex-direction:column;gap:2px}.pause-copy strong{font-size:13px}.pause-copy span{font-size:11px;color:rgba(255,255,255,.55)}
+.switch{position:relative;width:44px;height:24px;flex:0 0 auto}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.12);transition:.2s}.slider:before{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;border-radius:50%;background:#fff;transition:.2s}.switch input:checked + .slider{background:rgba(255,255,255,.38)}.switch input:checked + .slider:before{transform:translateX(20px)}
+#beaches{display:grid;overflow-y:auto;min-height:0;flex:1;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1);padding:10px 0}.beach{display:flex;gap:7px;align-items:center;min-width:0;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}.beach span{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:rgba(255,255,255,.9)}
+.top-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}.top-grid .row,.top-grid .pause-row,.top-grid .radio-row{margin:0}.radio-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;margin:10px 0}.field{display:flex;flex-direction:column;gap:5px}.field label{font-size:11px;color:rgba(255,255,255,.58);text-transform:uppercase;letter-spacing:.08em}.field select{width:100%;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:9px;padding:8px;outline:none}.volume-row{margin:0;display:flex;flex-direction:column;align-items:stretch;gap:6px}.volume-row label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.58)}
+@media(max-height:760px){#controls{top:58px;max-height:calc(100vh - 70px);padding:14px}#controls .hint{margin-bottom:9px}.top-grid{gap:7px}.pause-row,.radio-row{padding:8px 10px}.selection-tools{margin:7px 0}#beaches{gap:4px 6px;padding:7px 0}.beach{padding:4px 7px}.buttons{margin-top:8px}.radio-settings{margin:7px 0}}
+@media(max-width:900px){#beaches{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){#live{right:14px;top:14px}#info{left:14px;bottom:18px;min-width:0;max-width:75vw}#name{font-size:24px}#controls{left:12px;right:12px;top:66px;width:auto;overflow:auto}.top-grid,.radio-settings{grid-template-columns:1fr}#beaches{grid-template-columns:1fr 1fr}#radioHud{right:14px;bottom:18px;max-width:55vw} }
+</style>
+</head>
+<body>
+<video id="video" autoplay muted playsinline></video>
+<div id="live"><span id="liveDot"></span><span>LIVE</span></div>
+<div id="info"><div id="name"></div><div id="meta"><span id="clock"></span></div></div>
+<audio id="radio" preload="none"></audio>
+<div id="radioHud" class="hidden"><div id="radioStation">ASPEN 102.3</div><div id="radioTrack">Pura música</div></div>
+<div id="radioHint">Click para activar la radio</div>
+<div id="controls">
+  <div class="control-head"><div><h3>MDP Surf TV</h3><span class="hint">Configuración rápida</span></div><button id="closeControls" class="close-btn" aria-label="Cerrar">×</button></div>
+  <div class="top-grid">
+    <div class="row"><label>Segundos por playa</label><input id="seconds" type="number" min="5" max="3600" value="30"></div>
+    <div class="pause-row"><div class="pause-copy"><strong>Pausar rotación</strong><span>Dejar esta playa fija</span></div><label class="switch"><input id="pauseToggle" type="checkbox"><span class="slider"></span></label></div>
+    <div class="radio-row"><div class="radio-copy"><strong>Radio de fondo</strong><span>Aspen o Blue</span></div><label class="switch"><input id="radioToggle" type="checkbox"><span class="slider"></span></label></div>
+    <div class="radio-settings"><div class="field"><label>Emisora</label><select id="radioStationSelect"><option value="aspen">Aspen 102.3</option><option value="blue">Blue 100.7</option></select></div><div class="volume-row"><label>Volumen</label><input id="radioVolume" type="range" min="0" max="1" step="0.05" value="0.45"></div></div>
+  </div>
+  <div class="selection-tools"><button id="selectAll" class="secondary">Seleccionar todas</button><button id="deselectAll" class="secondary">Deseleccionar todas</button></div>
+  <div id="beaches"></div>
+  <div class="buttons"><button id="prev" class="secondary">Anterior</button><button id="next">Siguiente</button><button id="fullscreen" class="secondary">Fullscreen</button></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<script>
+const DEFAULT=[
+{name:'Sun Rider',url:'https://video.estadodelmar.com.ar/mobile/SUNRIDER/index.m3u8',enabled:true},
+{name:'La 40',url:'https://video2.estadodelmar.com.ar/mobile/LA40P/index.m3u8',enabled:true},
+{name:'Daprotis',url:'https://video5.estadodelmar.com.ar/mobile/ElBarco2/index.m3u8',enabled:true},
+{name:'El Barco 2',url:'https://video.estadodelmar.com.ar/mobile/elbarco/index.m3u8',enabled:true},
+{name:'Cardiel',url:'https://video2.estadodelmar.com.ar/mobile/museomar2/index.m3u8',enabled:true},
+{name:'Alicante',url:'https://video5.estadodelmar.com.ar/mobile/ALICANTE/index.m3u8',enabled:true},
+{name:'La Pepita',url:'https://video2.estadodelmar.com.ar/mobile/PEPITA/index.m3u8',enabled:true},
+{name:'Hotel Guerrero',url:'https://video.estadodelmar.com.ar/mobile/hguerrero2/index.m3u8',enabled:true},
+{name:'El Torreón',url:'https://video5.estadodelmar.com.ar/mobile/TORREON/index.m3u8',enabled:true},
+{name:'Torreón del Monje',url:'https://video.estadodelmar.com.ar/mobile/torreon/index.m3u8',enabled:true},
+{name:'Varese',url:'https://video5.estadodelmar.com.ar/mobile/varesertmp/index.m3u8',enabled:true},
+{name:'Waimea',url:'https://video2.estadodelmar.com.ar/mobile/waimea/index.m3u8',enabled:true},
+{name:'La Normandina',url:'https://video2.estadodelmar.com.ar/mobile/lanormandina/index.m3u8',enabled:true},
+{name:'Biología',url:'https://video2.estadodelmar.com.ar/mobile/playagrande/index.m3u8',enabled:true},
+{name:'El Yacht · Domo',url:'https://video5.estadodelmar.com.ar/mobile/YACHTdomo/index.m3u8',enabled:true},
+{name:'El Yacht',url:'https://video5.estadodelmar.com.ar/mobile/yacht/index.m3u8',enabled:true},
+{name:'Balneario 0',url:'https://video2.estadodelmar.com.ar/mobile/balneario0/index.m3u8',enabled:true},
+{name:'Waikiki',url:'https://video.estadodelmar.com.ar/mobile/WAIKIKI3/index.m3u8',enabled:true},
+{name:'Punto Escondido · Waikiki',url:'https://video2.estadodelmar.com.ar/mobile/waikiki2/index.m3u8',enabled:true},
+{name:'Mariano',url:'https://video2.estadodelmar.com.ar/mobile/MARIANO/index.m3u8',enabled:true},
+{name:'Bahía Faro',url:'https://video5.estadodelmar.com.ar/mobile/BAHIA/index.m3u8',enabled:true},
+{name:'Honu Beach Norte',url:'https://video5.estadodelmar.com.ar/mobile/honu2/index.m3u8',enabled:true},
+{name:'Honu Beach',url:'https://video2.estadodelmar.com.ar/mobile/honubeach/index.m3u8',enabled:true},
+{name:'Horizonte del Sol',url:'https://video2.estadodelmar.com.ar/mobile/HORIZONTE/index.m3u8',enabled:true},
+{name:'La Nativa',url:'https://video5.estadodelmar.com.ar/mobile/NATIVA/index.m3u8',enabled:true},
+{name:'La Nativa 2',url:'https://video5.estadodelmar.com.ar/mobile/lanativa2/index.m3u8',enabled:true},
+{name:'Playa Serena',url:'https://video5.estadodelmar.com.ar/mobile/Serena2/index.m3u8',enabled:true},
+{name:'Playa Serena Sur',url:'https://video5.estadodelmar.com.ar/mobile/SerenaSur/index.m3u8',enabled:true},
+{name:'Pura Vida',url:'https://video.estadodelmar.com.ar/mobile/puravida/index.m3u8',enabled:true},
+{name:'Acantilados',url:'https://video.estadodelmar.com.ar/mobile/acantilados/index.m3u8',enabled:false},
+{name:'Paradise',url:'https://video5.estadodelmar.com.ar/mobile/paradise/index.m3u8',enabled:true},
+{name:'Chapadmalal 2',url:'https://video.estadodelmar.com.ar/mobile/chapa/index.m3u8',enabled:true},
+{name:'Chapadmalal 4',url:'https://video5.estadodelmar.com.ar/mobile/CHAPADOMO/index.m3u8',enabled:true},
+{name:'Chapadmalal 5',url:'https://video5.estadodelmar.com.ar/mobile/chapadmal5/index.m3u8',enabled:true}
+];
+const saved=JSON.parse(localStorage.getItem('mdpSurfTv')||'null');
+let cfg=saved||{seconds:30,beaches:DEFAULT,paused:false,radioEnabled:true,radioVolume:.45,radioStation:'aspen'};
+// Merge new catalog entries into an existing saved setup without losing choices.
+if(saved){
+  const oldByUrl=new Map((saved.beaches||[]).map(b=>[b.url,b]));
+  cfg.beaches=DEFAULT.map(b=>oldByUrl.has(b.url)?{...b,...oldByUrl.get(b.url)}:b);
+  cfg.seconds=saved.seconds||30;
+  cfg.paused=!!saved.paused;
+  cfg.radioEnabled=saved.radioEnabled!==false;
+  cfg.radioVolume=Number.isFinite(+saved.radioVolume)?+saved.radioVolume:.45;
+  cfg.radioStation=saved.radioStation||'aspen';
+}
+let index=-1,timer=null,paused=!!cfg.paused,hideTimer=null,manualCloseUntil=0;
+const video=document.querySelector('#video'), nameEl=document.querySelector('#name'), secondsEl=document.querySelector('#seconds'), beachesEl=document.querySelector('#beaches'), pauseToggle=document.querySelector('#pauseToggle');
+const radio=document.querySelector('#radio'), radioToggle=document.querySelector('#radioToggle'), radioVolume=document.querySelector('#radioVolume'), radioStationSelect=document.querySelector('#radioStationSelect'), radioHud=document.querySelector('#radioHud'), radioStation=document.querySelector('#radioStation'), radioTrack=document.querySelector('#radioTrack'), radioHint=document.querySelector('#radioHint');
+const RADIOS={
+ aspen:{name:'ASPEN 102.3',stream:'https://playerservices.streamtheworld.com/api/livestream-redirect/ASPEN.mp3',now:'https://np.tritondigital.com/public/nowplaying?mountName=ASPEN&numberToFetch=1&eventType=track'},
+ blue:{name:'BLUE 100.7',stream:'https://playerservices.streamtheworld.com/api/livestream-redirect/BLUE_FM_100_7AAC.aac',now:[
+   'https://np.tritondigital.com/public/nowplaying?mountName=BLUE_FM_100_7AAC&numberToFetch=1&eventType=track',
+   'https://np.tritondigital.com/public/nowplaying?mountName=BLUE_FM_100_7&numberToFetch=1&eventType=track'
+ ]}
+};
+let radioBlocked=false;
+let hls=null;
+function save(){cfg.seconds=Math.max(5,+secondsEl.value||30);cfg.paused=paused;cfg.radioEnabled=radioToggle.checked;cfg.radioVolume=+radioVolume.value;cfg.radioStation=radioStationSelect.value;localStorage.setItem('mdpSurfTv',JSON.stringify(cfg));schedule()}
+function render(){secondsEl.value=cfg.seconds;pauseToggle.checked=paused;radioToggle.checked=cfg.radioEnabled!==false;radioVolume.value=cfg.radioVolume??.45;radioStationSelect.value=cfg.radioStation||'aspen';radio.volume=+radioVolume.value;beachesEl.innerHTML='';cfg.beaches.forEach((b,i)=>{const d=document.createElement('label');d.className='beach';d.title=b.name;d.innerHTML=`<input type="checkbox" ${b.enabled?'checked':''}><span>${b.name}</span>`;const c=d.querySelector('input');c.onchange=()=>{b.enabled=c.checked;save()};beachesEl.appendChild(d)})}
+function active(){return cfg.beaches.map((b,i)=>({...b,i})).filter(b=>b.enabled&&b.url)}
+function updateHud(){}
+function playBeach(step=1){const a=active();if(!a.length){nameEl.textContent='Seleccioná una playa';updateHud();return} const current=a.findIndex(x=>x.i===index);const next=(current<0?0:(current+step+a.length)%a.length);const b=a[next];index=b.i;nameEl.textContent=b.name;updateHud();video.style.opacity=0;
+ setTimeout(()=>{if(hls){hls.destroy();hls=null} if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=b.url;video.play().catch(()=>{});}else if(window.Hls&&Hls.isSupported()){hls=new Hls({liveSyncDurationCount:3});hls.loadSource(b.url);hls.attachMedia(video);hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));}else{nameEl.textContent=b.name+' · HLS no compatible'} video.style.opacity=1;},500);schedule()}
+function schedule(){clearTimeout(timer);if(!paused){timer=setTimeout(()=>playBeach(1),Math.max(5,+secondsEl.value||30)*1000)}}
+
+secondsEl.onchange=save;document.querySelector('#next').onclick=()=>playBeach(1);document.querySelector('#prev').onclick=()=>playBeach(-1);pauseToggle.onchange=()=>{paused=pauseToggle.checked;save()};document.querySelector('#selectAll').onclick=()=>{cfg.beaches.forEach(b=>b.enabled=true);render();save()};document.querySelector('#deselectAll').onclick=()=>{cfg.beaches.forEach(b=>b.enabled=false);render();save()};document.querySelector('#fullscreen').onclick=()=>document.documentElement.requestFullscreen?.();
+document.querySelector('#closeControls').onclick=()=>{document.body.classList.remove('show-controls');clearTimeout(hideTimer);manualCloseUntil=Date.now()+1200;};
+
+function setRadioSource(){const r=RADIOS[radioStationSelect.value]||RADIOS.aspen;radioStation.textContent=r.name;radioTrack.textContent=radioStationSelect.value==='blue'?'Buscando canción…':'Pura música';if(radio.src!==r.stream)radio.src=r.stream;}
+setRadioSource();
+async function startRadio(){
+  if(!radioToggle.checked){radio.pause();radioHud.classList.add('hidden');radioHint.classList.remove('show');return}
+  radio.volume=+radioVolume.value;
+  try{await radio.play();radioBlocked=false;radioHint.classList.remove('show');radioHud.classList.remove('hidden');}
+  catch(e){radioBlocked=true;radioHint.classList.add('show');radioHud.classList.add('hidden');}
+}
+radioToggle.onchange=()=>{cfg.radioEnabled=radioToggle.checked;save();startRadio()};
+radioStationSelect.onchange=()=>{cfg.radioStation=radioStationSelect.value;setRadioSource();save();startRadio();updateNowPlaying()};
+radioVolume.oninput=()=>{radio.volume=+radioVolume.value;cfg.radioVolume=+radioVolume.value;cfg.radioStation=radioStationSelect.value;localStorage.setItem('mdpSurfTv',JSON.stringify(cfg))};
+document.addEventListener('click',()=>{if(radioBlocked&&radioToggle.checked)startRadio()},{passive:true});
+async function updateNowPlaying(){
+  if(!radioToggle.checked)return;
+  const station=RADIOS[radioStationSelect.value]||RADIOS.aspen;
+  const endpoints=Array.isArray(station.now)?station.now:[station.now].filter(Boolean);
+  if(!endpoints.length){radioTrack.textContent='En vivo';return;}
+  for(const endpoint of endpoints){
+    try{
+      const sep=endpoint.includes('?')?'&':'?';
+      const r=await fetch(endpoint+sep+'rnd='+Date.now(),{cache:'no-store'}); if(!r.ok)continue;
+      const raw=await r.text();
+      let artist='',title='';
+      // Triton commonly returns XML; some deployments return JSON.
+      if(raw.trim().startsWith('{')||raw.trim().startsWith('[')){
+        const data=JSON.parse(raw); const item=Array.isArray(data)?data[0]:(data.nowplaying||data.items||data);
+        artist=item?.track_artist_name||item?.artist||''; title=item?.track_song_name||item?.cue_title||item?.title||'';
+      }else{
+        const xml=new DOMParser().parseFromString(raw,'application/xml');
+        const item=xml.querySelector('nowplaying-info')||xml.documentElement; const props={};
+        item.querySelectorAll?.('property').forEach(p=>props[p.getAttribute('name')]=(p.textContent||'').trim());
+        artist=props.track_artist_name||props.artist||''; title=props.track_song_name||props.cue_title||props.title||'';
+      }
+      if(!artist&&title.includes(' - ')){const parts=title.split(' - ');artist=parts.shift().trim();title=parts.join(' - ').trim();}
+      const text=[artist,title].filter(Boolean).join(' — ');
+      if(text){radioTrack.textContent=text;return;}
+    }catch(e){}
+  }
+  radioTrack.textContent=radioStationSelect.value==='blue'?'Blue 100.7 · En vivo':'Pura música';
+}
+setInterval(updateNowPlaying,20000);updateNowPlaying();
+
+function clock(){document.querySelector('#clock').textContent=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});}setInterval(clock,1000);clock();
+document.addEventListener('mousemove',()=>{if(Date.now()<manualCloseUntil)return;document.body.classList.add('show-controls');clearTimeout(hideTimer);hideTimer=setTimeout(()=>document.body.classList.remove('show-controls'),3500)});
+render();playBeach(1);startRadio();
+</script>
+</body>
+</html>
