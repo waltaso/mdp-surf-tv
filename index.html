@@ -15,7 +15,8 @@ html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden;font-f
 
 #settingsBtn{position:fixed;right:28px;top:24px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;padding:0;background:rgba(5,9,12,.34);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:19px;font-weight:400;line-height:1;z-index:20;transition:background .2s,color .2s,transform .2s}
 #settingsBtn:hover{background:rgba(5,9,12,.56);color:#fff;transform:rotate(18deg)}
-.nav-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:15;width:46px;height:72px;padding:0;border:0;border-radius:16px;background:rgba(5,9,12,.12);color:rgba(255,255,255,.52);font-family:Arial,sans-serif;font-size:38px;font-weight:200;line-height:1;display:grid;place-items:center;text-shadow:0 2px 10px rgba(0,0,0,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:background .2s,color .2s,transform .2s}
+.nav-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:15;width:46px;height:72px;padding:0;border:0;border-radius:16px;background:rgba(5,9,12,.12);color:rgba(255,255,255,.52);font-family:Arial,sans-serif;font-size:38px;font-weight:200;line-height:1;display:grid;place-items:center;text-shadow:0 2px 10px rgba(0,0,0,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .28s ease,background .2s,color .2s,transform .2s}
+body.show-nav .nav-arrow{opacity:1;pointer-events:auto}
 .nav-arrow:hover{background:rgba(5,9,12,.28);color:rgba(255,255,255,.95);transform:translateY(-50%) scale(1.04)}
 #prevScreen{left:18px}#nextScreen{right:18px}
 .menu-actions{display:flex;justify-content:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.10);flex:0 0 auto}
@@ -149,6 +150,16 @@ function schedule(){clearTimeout(timer);if(!paused){timer=setTimeout(()=>playBea
 secondsEl.onchange=save;document.querySelector('#nextScreen').onclick=()=>playBeach(1);document.querySelector('#prevScreen').onclick=()=>playBeach(-1);pauseToggle.onchange=()=>{paused=pauseToggle.checked;save()};document.querySelector('#selectAll').onclick=()=>{cfg.beaches.forEach(b=>b.enabled=true);render();save()};document.querySelector('#deselectAll').onclick=()=>{cfg.beaches.forEach(b=>b.enabled=false);render();save()};document.querySelector('#fullscreen').onclick=()=>document.documentElement.requestFullscreen?.();
 document.querySelector('#settingsBtn').onclick=()=>document.body.classList.add('show-controls');
 document.querySelector('#closeControls').onclick=()=>document.body.classList.remove('show-controls');
+
+// Show the on-screen navigation arrows only while the pointer is active.
+let navHideTimer=null;
+function showNavTemporarily(){
+  document.body.classList.add('show-nav');
+  clearTimeout(navHideTimer);
+  navHideTimer=setTimeout(()=>document.body.classList.remove('show-nav'),2200);
+}
+document.addEventListener('mousemove',showNavTemporarily,{passive:true});
+document.addEventListener('pointerdown',showNavTemporarily,{passive:true});
 
 function setRadioSource(){const r=RADIOS[radioStationSelect.value]||RADIOS.aspen;radioStation.textContent=r.name;radioTrack.textContent=radioStationSelect.value==='blue'?'Buscando canción…':'Pura música';if(radio.src!==r.stream)radio.src=r.stream;}
 setRadioSource();
